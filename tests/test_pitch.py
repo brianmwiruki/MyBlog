@@ -11,7 +11,7 @@ class PitchModelTest(unittest.TestCase):
         Set up method that will run before every Test
         """
         self.pitch= Pitch(title = 'This is a heading', content = 'This is the body')
-        # self.comment= Comment(comment = 'testing testing')
+     
 
     def tearDown(self):
         Pitch.query.delete()
