@@ -2,12 +2,12 @@
 This is a flask developed personal blogging website that allows registered users to create and share their opinions and other users can read, comment, up-vote and down-vote on them.
 
 ## Author
-* Evans Nyambane
+* Brian Mwiruki
 
 
 ### Blog
 
-![alt text](bloog.png)
+![alt text](blog.png)
 
 
 ## BDD
@@ -44,7 +44,7 @@ This is a flask developed personal blogging website that allows registered users
   Here's a brief intro about what a developer must do in order to start running the app locally:
 
   ```
-  $ git clone https://github.com/DjCooGie/MyBlog.git
+  $ git clone https://github.com/Bryan4real/MyBlog
   $ cd MyBlog/
   ```
   * create a virtual environment
@@ -74,16 +74,16 @@ This is a flask developed personal blogging website that allows registered users
 No known bugs
 
 ## Site Live Link
-[https://evan-blog-ups.herokuapp.com/](https://evan-blog-ups.herokuapp.com/)
+[https://bryan4realblog.herokuapp.com//](https://bryan4realblog.herokuapp.com//)
 
 #### Collaborate
 >Incase of any questions, problems or ideas concerning the app, feel free to reach out to me:
->>Github: [Evans Nyambane](https://github.com/DjCooGie)
->>Email: evansonchagwa01@gmail.com
+>>Github: [Bryan Mwiruki](https://github.com/Bryan4real)
+>>Email: mwiruki@outlook.com
 
 #### License
 MIT
-&copy;2020 Evans Nyambane
+&copy;2020 Brian Mwiruki
 
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
