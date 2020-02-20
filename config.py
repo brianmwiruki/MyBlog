@@ -6,7 +6,7 @@ class Config:
     '''
     debug = True
     SECRET_KEY = os.environ.get('SECRET_KEY')
-    SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://moringa:hahaa@localhost/blog'
+    SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://bryan:Admin@localhost/blog'
     #  email configurations
     MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 465
@@ -24,8 +24,8 @@ class DevConfig(Config):
     '''
     Development configuration child class
     '''
-    SECRET_KEY = 'hahaha'
-    SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://moringa:hahaa@localhost/blog'
+    SECRET_KEY = 'niMIMI'
+    SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://bryan:Admin@localhost/blog'
     DEBUG = True
     ENV = 'development'
 config_options = {
