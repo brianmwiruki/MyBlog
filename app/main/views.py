@@ -1,130 +1,126 @@
-from flask import render_template,request,redirect,url_for
-from . import main
+from flask import render_template,url_for,request,flash,redirect,abort
+from app.main  import main
+from app.models import User,Blog,Comment
+from .. import db, photos
+from .forms import UpdateProfile,CreateBlog
 from flask_login import login_required,current_user
-from ..models import User,Pitch,Comment
-from .forms import Pitch_Form, Update_Profile,CommentsForm
-from .. import db
-
-
+import secrets
+import os
+from ..email import mail_message
+from ..request import get_quotes
 
 @main.route('/')
 def index():
-    """
-    View root page function that returns the index page and its data
-    """
- 
-    
-    
-    return render_template('index.html')
-@main.route('/all_pitches')
-def all_pitches():
-    general = Pitch.query.all()
-    
-    
-    
-    return render_template('all_pitches.html',general=general)
+    quotes = get_quotes()
+    page = request.args.get('page',1,type =int)
+    blogs = Blog.query.order_by(Blog.posted.desc()).paginate(page = page)
+    return render_template('index.html',quote=quotes,blogs=blogs)
 
-
-@main.route('/interview')
-def interview():
-    comment = Comment.query.all()
-    interview= Pitch.query.filter_by(category = 'Interview Pitch').all()
-    return render_template('interview.html',interview=interview,comment=comment)
-
-@main.route('/programming')
-def programming():
-    comment = Comment.query.all()
-    programming = Pitch.query.filter_by(category = 'Programming Pitch').all()
-    return render_template('programming.html',programming=programming,comment=comment)
-
-@main.route('/life')
-def life():
-    comment = Comment.query.all()
-    life = Pitch.query.filter_by(category = 'Life Struggles').all()
-    return render_template('life.html',life=life,comment=comment)
-@main.route('/pickup')
-def pickup():
-    comment = Comment.query.all()
-    pickup = Pitch.query.filter_by(category = 'Pickup Lines').all()
-    return render_template('pickup.html', pickup=pickup,comment=comment)
-
-@main.route('/new_pitch', methods = ['GET','POST'])
+@main.route('/new_post',methods=['GET','POST'])
 @login_required
-def new_pitch():
-    form = Pitch_Form()    
+def new_blog():
 
+    form = CreateBlog()
     if form.validate_on_submit():
-        pitch = Pitch(title = form.title.data, category =form.category.data, content = form.content.data, author = form.author.data,upvote = 0,downvote = 0,user_id=current_user.id)
+        title = form.title.data
+        user_id = current_user._get_current_object().id
+        content = form.content.data
+        blog = Blog(title = title, content = content,user_id=user_id)
+        blog.save_blog()
+        return redirect(url_for('main.index'))
+    return render_template('new_blog.html',form = form)
 
-        pitch.save_pitch()
-        
-        return redirect(url_for('main.all_pitches'))
+@main.route('/blog/<id>')
+def blog(id):
+    comments = Comment.query.filter_by(blog_id = id).all()
+    blog = Blog.query.get_or_404(id)
+    return render_template('blogs.html',blog = blog ,comment= comments)
     
-    return render_template('new_pitch.html', pitch_form = form)  
+@main.route('/comment/<blog_id>',methods=['GET','POST'])
+def comment(blog_id):
+    blog = Blog.query.get(blog_id)
+    comment = request.form.get('newcomment')
+    new_comment = Comment(comment = comment, user_id = current_user._get_current_object().id, blog_id=blog_id)
+    new_comment.save_comment()
+    return redirect(url_for('main.blog',id= blog.id))
 
-@main.route('/<username>')
+@main.route('/blog/<blog_id>/delete', methods=['POST'])
 @login_required
-def profile(username):
-    pitch = Pitch.query.filter_by(user_id= current_user.id).all()
-    
-   
-    user = User.query.filter_by(username = username).first()
-   
-    return render_template('profile.html', user = user, pitch = pitch)
-    
-@main.route('/<username>/update/pic', methods = ['POST'])
-@login_required
-def update_profile_pic(username):
-    user = User.query.filter_by(username = username).first()
-
-    if 'photo' in request.files:
-        filename = photos.save(request.files['photo'])
-        path = f'photos/{filename}'
-        user.profile_img = path
-        db.session.commit()
-
-    return redirect(url_for('main.profile', username = username))
-
-@main.route('/user/<username>/update',methods = ['GET','POST'])
-@login_required
-def update_profile(username):
-    user = User.query.filter_by(username = username).first()
-    if user is None:
+def del_post(blog_id):
+    blog = Blog.query.get(blog_id)
+    if blog.user != current_user:
         abort(404)
+    db.session.delete(blog)
+    db.session.commit()
 
-    form = Update_Profile()
+    flash('Blog Deleted Successfully')
+    return redirect(url_for('main.index'))
 
+@main.route('/profile',methods=['GET','POST'])
+def profile():
+    form = UpdateProfile()
+    if form.validate_on_submit():
+        if form.profile_pic.data:
+            picture_file= save_pic(form.profile_pic.data)
+            current_user.profile_pic_path = picture_file
+        current_user.username = form.username.data
+        current_user.email = form.email.data
+        current_user.bio = form.bio.data
+        db.session.commit()
+        flash('Profile Updated Successfully')
+        return redirect(url_for('main.profile'))
+    elif request.method =='GET':        
+        form.bio.data = current_user.bio
+    profile_pic_path = url_for('static',filename='photos' + current_user.profile_pic_path)    
+    return render_template('profile/profile.html',form=form)
+
+    
+@main.route('/user/<string:username>')
+def user_post(username):
+    user = User.query.filter_by(username=username).first()
+    blogs = Blog.query.filter_by(user = user ).order_by(Blog.posted.desc()).paginate(page = page)
+    return render_template('posts.html',blogs=blogs,user=user)
+
+@main.route('/user/<name>/updateprofile',methods=['GET','POST'])
+@login_required
+def Updateprof(name):
+    form = UpdateProf()
+    user = User.query.filter_by(username = name).first()
+    if user == None:
+        abort(404)
     if form.validate_on_submit():
         user.bio = form.bio.data
-        db.session.add(user)
-        db.session.commit()
+        user.save_user()
+        return redirect(url_for('.profile',name = name))
+    return render_template('profile/update.html',form=form)
 
-        return redirect(url_for('main.profile',username=user.username))
 
-    return render_template('update_profile.html',form =form)
+def save_pic(form_picture):
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_filename = random_hex + f_ext
+    picture_path = os.path.join('app/static/photos', picture_filename)
 
-@main.route('/comments/<int:pitch_id>/comment',methods=['POST','GET'])
+    output_size = (80,80)
+    i = Image.open(form_picture)
+    i.thumbnail(output_size)
+    i.save(picture_path)
+    return picture_filename
+
+@main.route('/blog/<blog_id>/update',methods=['GET','POST'])
 @login_required
-def comment(pitch_id):
-
-    form = CommentsForm()    
-    pitch = Pitch.query.filter_by(id = pitch_id).first()
-    
-
-  
-    user = current_user.username
+def updateblog(blog_id):
+    blog = Blog.query.get(blog_id)
+    if blog.user != current_user:
+        abort(404)
+    form = CreateBlog()
     if form.validate_on_submit():
-        comment = Comment(content = form.comment.data,user_id = current_user.id,pitch_id = pitch.id)
-        db.session.add(comment)
+        blog.title = form.title.data
+        blog.content = form.content.data
         db.session.commit()
-        
-
-    
-
-        
-   
-       
-      
-        return redirect(url_for('main.comment',pitch_id=pitch_id))
-    
-    return render_template('comments.html', form = form,pitch=pitch,pitch_id=pitch_id,user=user)  
+        flash('Quote Blog Successfully Updated')
+        return redirect(url_for('main.index',id=blog_id))
+    if request.method == 'GET':
+        form.title.data = blog.title
+        form.content.data = blog.content
+    return render_template('new_blog.html',form = form)

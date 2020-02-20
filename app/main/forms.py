@@ -1,17 +1,26 @@
-from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SubmitField, RadioField
-from wtforms.validators import DataRequired
+from flask_wtf import FlaskForm 
+from flask_wtf.file import FileField,FileAllowed
+from wtforms import StringField,TextAreaField,SubmitField,ValidationError
+from wtforms.validators import Email,Required
+from flask_login import current_user
+from ..models import User
 
-class Pitch_Form(FlaskForm):
-    title = StringField('Title', validators=[DataRequired()])
-    author = StringField('Author', validators=[DataRequired()])
-    content = TextAreaField('Note Pitch', validators=[DataRequired()])  
-    category = RadioField('Pick Category', choices=[('Pickup Lines', 'Pickup Lines'), ('Interview Pitch', 'Interview Pitch'), ('Life Struggles', 'Life Struggles'), ('Programming Pitch', 'Programming Pitch')], validators=[DataRequired()])  
-    submit = SubmitField('Submit')
+class UpdateProfile(FlaskForm):
+    bio =TextAreaField('Write something about yourself',validators =[Required()])
+    profile_pic = FileField('Picture', validators = [FileAllowed(['jpg','png'])])
+    submit = SubmitField('Update')
 
-class Update_Profile(FlaskForm):
-    bio = TextAreaField('Add something about Yourself...', validators = [DataRequired()])
-    submit = SubmitField('Submit')
-class CommentsForm(FlaskForm):
-   comment = TextAreaField('comment on the post',validators=[DataRequired()])
-   submit = SubmitField('Add Comment')
+
+    def validate_email(self,email):
+        if email.data != current_user.email:
+            if User.query.filter_by(email = email.data).first():
+                raise ValidationError("Invalid Email!")
+    def validate_username(self,username):
+        if username.data != current_user.username:
+            if User.query.filter_by(username = username.data).first():
+                raise ValidationError("Invalid Username")
+
+class CreateBlog(FlaskForm):
+    title = StringField('Blog Title',validators=[Required()])
+    content = TextAreaField('Blog Content',validators=[Required()])
+    submit = SubmitField('Post')

@@ -1,49 +1,39 @@
-from flask import render_template,redirect,url_for,flash,request
-from . import auth
-from .. import mail
-from flask_login import login_user,logout_user,login_required,current_user
-from .forms import LoginForm, SignUpForm
-from ..models import User,Pitch
-from flask_mail import Message
+from flask import redirect,render_template,url_for,request,flash
+from app.auth import auth
+from app.models import User
+from .forms import RegistrationForm,LoginForm
+from flask_login import login_user,login_required,logout_user
+from ..email import mail_message
 
 
 
-@auth.route('/signup',methods=['GET','POST'])
-def signup():
-    form = SignUpForm()
+@auth.route('/register',methods = ["GET","POST"])
+def register():
+    form = RegistrationForm()
     if form.validate_on_submit():
-        user =  User(email = form.email.data, username = form.username.data,password = form.password.data)
+        user = User(username=form.username.data, email = form.email.data, password = form.password.data )
         user.save_user()
-        try:
-            msg = Message('Hello! Welcome to PITCH. We are glad you joined us.',sender=('evasonchagwa01@gmail.com'))
-            msg.add_recipient(user.email)
-            mail.send(msg)
-        except Exception as e:
-            print('failed')
-
+        # mail_message('Welcome to MyBlog','email/welcome',user.email,user=user)
         return redirect(url_for('auth.login'))
-    
-        title = "New Account"
-    return render_template('sign_up.html',signup_form = form)
+    return render_template('auth/sign_up.html',registration_form=form)
 
 
 @auth.route('/login',methods=['GET','POST'])
 def login():
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username = form.username.data).first()
-        if user is not None and user.verify_password(form.password.data):
-            login_user(user,form.remember.data)
-            return redirect(request.args.get('next') or url_for('main.all_pitches'))
+    login_form = LoginForm()
+    if login_form.validate_on_submit():
+        user = User.query.filter_by(email = login_form.email.data).first()
+        if user is not None and user.verify_password(login_form.password.data):
+            login_user(user,login_form.remember.data)
+            return redirect(request.args.get('next') or url_for('main.index'))
 
-        else:
-            flash('Invalid Username or Password')
+        flash('Invalid username or Password')
 
-    return render_template('login.html',login_form = form)
+    title = "MyBlogLogin"
+    return render_template('auth/sign_in.html',login_form = login_form,title=title)
 
 @auth.route('/logout')
 @login_required
-def signout():
+def logout():
     logout_user()
-    flash('You have been successfully logged out')
     return redirect(url_for("main.index"))
